@@ -3,16 +3,23 @@ import ScoreBoard from './ScoreBoard'
 import GameOver from './GameOver'
 
 function Quiz() {
-  const generateQuestion = () => {
-    const operations = ['+', '-', '*']
-    const op = operations[Math.floor(Math.random() * operations.length)]
-    const num1 = Math.ceil(Math.random() * 10)
-    const num2 = Math.ceil(Math.random() * 10)
 
-    return { num1, num2, op }
-  }
 
-  const [question, setQuestion] = useState(generateQuestion())
+  const sendScoreToServer = async (finalScore) => {
+  const response = await fetch(
+    "http://127.0.0.1:8000/api/score/",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ score: finalScore }),
+    }
+  )
+  const data = await response.json()
+}
+
+  const [question, setQuestion] = useState({})
   const [response, setResponse] = useState('')
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(7)
@@ -22,9 +29,19 @@ function Quiz() {
     parseInt(localStorage.getItem('highScore')) || 0
   )
 
+  const fetchQuestion = async () => {
+  const response = await fetch("http://127.0.0.1:8000/api/question/")
+  const data = await response.json()
+  setQuestion(data)
+}
+useEffect(() => {
+  fetchQuestion()
+}, [])
+
   useEffect(() => {
     if (timeLeft === 0) {
       setGameOver(true)
+      sendScoreToServer(score)
       return
     }
 
@@ -36,10 +53,14 @@ function Quiz() {
   }, [timeLeft])
 
   const calculateAnswer = () => {
-    const { num1, num2, op } = question
-    if (op === '+') return num1 + num2
-    if (op === '-') return num1 - num2
-    if (op === '*') return num1 * num2
+    console.log(question);
+    const { num1, num2, operation } = question
+    console.log(num1);
+    console.log(num2);
+    console.log(operation);
+    if (operation === '+') return num1 + num2
+    if (operation === '-') return num1 - num2
+    if (operation === '*') return num1 * num2
   }
 
   const handleKeyPress = (e) => {
@@ -60,14 +81,14 @@ function Quiz() {
       }
 
       setResponse('')
-      setQuestion(generateQuestion())
-      setTimeLeft(10)
+      fetchQuestion()
+      setTimeLeft(7)
     }
   }
 
   const restartGame = () => {
     setScore(0)
-    setQuestion(generateQuestion())
+    fetchQuestion()
     setTimeLeft(7)
     setGameOver(false)
     setFeedback('')
@@ -88,7 +109,7 @@ function Quiz() {
       <h2>Time Left: {timeLeft}s</h2>
 
       <h2>
-        {question.num1} {question.op} {question.num2}
+        {question.num1} {question.operation} {question.num2}
       </h2>
 
       <input
